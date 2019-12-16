@@ -8,4 +8,8 @@ class base_layer:
         # 2. if it's trainable, we can employ "layer.optimizer.regularizer.norm(weights)" to calculate norm loss
         self.weights = None
 
+class Phase:            #属性引用 因为NeuralNetworkTests使用了属性引用，所以需要添加
+    test = 'test'
+    train = 'train'
+
 
