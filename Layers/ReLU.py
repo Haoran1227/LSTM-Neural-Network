@@ -1,5 +1,8 @@
-class ReLU:
+from Layers.Base import base_layer
+
+class ReLU(base_layer):
     def __init__(self):
+        super().__init__()
         self.input_tensor = None
         pass
 

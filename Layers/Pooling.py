@@ -1,8 +1,9 @@
-import math
 import numpy as np
+from Layers.Base import base_layer
 
-class Pooling:
+class Pooling(base_layer):
     def __init__(self, stride_shape, pooling_shape):
+        super().__init__()
         if len(pooling_shape) == 1:
             self.flag = "1D"
             self.M = pooling_shape[0]           #pooling filter shape: (M, N)

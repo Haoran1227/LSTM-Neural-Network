@@ -1,7 +1,9 @@
 import numpy as np
+from Layers.Base import base_layer
 
-class FullyConnected:
+class FullyConnected(base_layer):
     def __init__(self, input_size, output_size):
+        super().__init__()
         self.weights = np.random.rand(output_size, input_size+1)     #weights+biases: row number=output_size, column_number=input_size
         self.input_tensor = None                                     #A_(l-1)
         self.gradient = None                                         #gradient of weights and biases in one matrix

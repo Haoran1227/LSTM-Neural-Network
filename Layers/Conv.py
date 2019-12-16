@@ -2,9 +2,11 @@ import numpy as np
 import math
 import scipy.signal as sgl
 import copy
+from Layers.Base import base_layer
 
-class Conv:
+class Conv(base_layer):
     def __init__(self, stride_shape, convolution_shape, num_kernels):
+        super().__init__()
         self.H = num_kernels            #number of kernels
         self.C = convolution_shape[0]   #number of channels
         self.M = convolution_shape[1]   #kenel shape
@@ -171,7 +173,7 @@ class Conv:
 
     @property
     def optimizer(self):
-        return self._optimizer
+        return self.weights_optimizer  # when call optimizer, return weights_optimizer. It's convenient for regularization
 
     @optimizer.setter
     def optimizer(self,opt):
