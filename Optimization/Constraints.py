@@ -23,8 +23,8 @@ class L2_Regularizer:
 
     def norm(self, weights):
         a=np.sum(np.square(weights))
-        #loss = self.alpha * np.sum(np.square(weights))      #||a||_2 = sqrt(sum(a_i^2))
-        loss = self.alpha * np.sqrt(np.sum(np.square(weights)))    #????????
+        #loss = self.alpha * np.sum(np.square(weights))            #||a||_2 = sqrt(sum(a_i^2))
+        loss = self.alpha * np.sqrt(np.sum(np.square(weights)))    # engineering form
         return loss
 
 
