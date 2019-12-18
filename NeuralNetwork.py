@@ -1,12 +1,13 @@
 import copy
+import pickle
 
 class NeuralNetwork:
     def __init__(self, optimizer, weights_initializer, bias_initializer):
         self.optimizer = optimizer
-        self.loss = []
-        self.layers = []
-        self.data_layer = None
-        self.loss_layer = None
+        self.loss = []                      # stores loss in each iteration
+        self.layers = []                    # stores the hidden layers
+        self.data_layer = None              # stores the input layer (input data structure)
+        self.loss_layer = None              # stores the loss calculation layer
         self.label_tensor = None            #Data load function must be operated one time in one training iteration
         self.weights_initializer = weights_initializer
         self.bias_initializer = bias_initializer
@@ -45,6 +46,7 @@ class NeuralNetwork:
         for i in range(iterations):
             self.loss.append(self.forward())
             self.backward(self.label_tensor)
+            print("current step:", i)
 
     def test(self,input_tensor):
         self.phase = "test"
@@ -62,5 +64,27 @@ class NeuralNetwork:
         for layer in self.layers:
             layer.phase = condition
 
+    def __getstate__(self):
+        #return state values to be pickled.
+        # data_layer, label_tensor, phase not pickled. Because they are not characteristic of reconstruction of net
+        state = (self.optimizer, self.layers, self.loss_layer, self.weights_initializer, self. bias_initializer)
+        return state
 
+    def __setstate__(self, state):
+        self.optimizer, self.layers, self.loss_layer, self.weights_initializer, self.bias_initializer = state
+        # dropped member in __getstae__() should be also initialized, it seems like initialization function
+        self.loss = []
+        self.data_layer = None
+        self.label_tensor = None
+        self._phase = None
 
+# functions used to save and load files
+def save(filename, net):
+    with open(filename, 'wb') as f:             #must be "wb", not "w"
+        pickle.dump(net, f)
+
+def load(filename, data_layer):
+    with open(filename, 'rb') as f:
+        net = pickle.load(f)
+        net.data_layer = data_layer
+    return net

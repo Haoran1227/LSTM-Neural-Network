@@ -8,15 +8,15 @@ batch_size = 50
 mnist = Helpers.MNISTData(batch_size)
 mnist.show_random_training_image()
 
-if os.path.isfile(os.path.join('trained', 'LeNet')):
-    net = NeuralNetwork.load(os.path.join('trained', 'LeNet'), mnist)
+if os.path.isfile(os.path.join('.','trained', 'LeNet.pk')):             #地址必须添加"."和".pk"
+    net = NeuralNetwork.load(os.path.join('.','trained', 'LeNet.pk'), mnist)
 else:
     net = build()
     net.data_layer = mnist
 
 net.train(300)
 
-NeuralNetwork.save(os.path.join('trained', 'LeNet'), net)
+NeuralNetwork.save(os.path.join('.','trained', 'LeNet.pk'), net)
 
 plt.figure('Loss function for training LeNet on the MNIST dataset')
 plt.plot(net.loss, '-x')
