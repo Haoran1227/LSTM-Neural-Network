@@ -10,7 +10,7 @@ class Constant:
 
 class UniformRandom:
     def initialize(self, weights_shape, fan_in, fan_out):
-        init_tensor = np.random.rand(weights_shape[0], weights_shape[1])    #initialize weights by uniform distribution
+        init_tensor = np.random.uniform(0, 1, weights_shape)    #initialize weights by uniform distribution
         return init_tensor
 
 class Xavier:
