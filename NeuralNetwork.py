@@ -15,13 +15,12 @@ class NeuralNetwork:
 
     def forward(self):
         input_tensor, self.label_tensor = self.data_layer.forward()         # see IrisData class in Helpers.py
-        regularization_loss = 0         # record regularization loss
+        total_regularization_loss = 0         # record regularization loss
         for layer in self.layers:
             input_tensor = layer.forward(input_tensor)                      #forward propagation
             if layer.weights is not None:      # it's a trainable layer
-                if layer.optimizer.regularizer is not None:     # it has regularizer
-                    regularization_loss += layer.optimizer.regularizer.norm(layer.weights)
-        loss = self.loss_layer.forward(input_tensor, self.label_tensor) + regularization_loss    # use the output of network to do optimization
+                total_regularization_loss += layer.regularization_loss
+        loss = self.loss_layer.forward(input_tensor, self.label_tensor) + total_regularization_loss    # use the output of network to do optimization
         return loss                                                         #the consequence is loss of network
 
     def backward(self,label_tensor):
