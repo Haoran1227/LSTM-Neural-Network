@@ -138,10 +138,23 @@ class BatchNormalization(base_layer):
 
     @property
     def optimizer(self):
-        return self.weights_optimizer  # when call optimizer, return weights_optimizer. It's convenient for regularization
+        return self._optimizer
 
     @optimizer.setter
     def optimizer(self,opt):
         self._optimizer = opt
         self.weights_optimizer =copy.deepcopy(self._optimizer)   #setting weights_optimizer can not be achieved in __init__()
         self.bias_optimizer = copy.deepcopy(self._optimizer)
+        self.bias_optimizer.regularizer = None      # Bias shouldn't participate in regularization
+
+    @property
+    def regularization_loss(self):
+        if self.weights_optimizer is not None:  # if weights_optimizer is defined
+            if self.weights_optimizer.regularizer is not None:  #if weights_optimizer has regularizer
+                # calculate regularization_loss
+                loss = self.weights_optimizer.regularizer.norm(self.weights)
+            else:
+                loss = 0
+        else:
+            loss = 0
+        return loss
