@@ -1,4 +1,5 @@
 import numpy as np
+import copy
 from Layers.Base import base_layer
 
 class FullyConnected(base_layer):
@@ -8,6 +9,8 @@ class FullyConnected(base_layer):
         self.input_tensor = None                                     #A_(l-1)
         self.gradient = None                                         #gradient of weights and biases in one matrix
         self._optimizer = None
+        self.weights_optimizer = None
+        self.bias_optimizer = None
 
     def initialize(self, weights_initializer, bias_initializer):
         #the last column in weights is bias
@@ -34,7 +37,8 @@ class FullyConnected(base_layer):
 
         # update weights and biases
         if self._optimizer is not None:
-            self.weights = self._optimizer.calculate_update(self.weights, self.gradient)
+            self.weights[:, :-1] = self.weights_optimizer.calculate_update(self.weights[:, :-1], self.gradient[:, :-1])
+            self.weights[:, -1] = self.bias_optimizer.calculate_update(self.weights[:, -1], self.gradient[:, -1])
         return error_tensor
 
     #optimizer property attribute and gradient_weights property attribute
@@ -43,9 +47,25 @@ class FullyConnected(base_layer):
 
     def set_optimizer(self,optimizer):
         self._optimizer = optimizer
+        self.weights_optimizer = copy.deepcopy(self._optimizer)
+        self.bias_optimizer = copy.deepcopy(self._optimizer)
+        self.bias_optimizer.regularizer = None  # Bias should not participate in regularization
 
     optimizer = property(get_optimizer,set_optimizer)
 
     @property
     def gradient_weights(self):
         return self.gradient
+
+    @property
+    def regularization_loss(self):
+        if self._optimizer is not None:  # if weights_optimizer is defined
+            if self._optimizer.regularizer is not None:  #if weights_optimizer has regularizer
+                # calculate regularization_loss
+                weights = np.delete(self.weights, -1, axis=1)   #delte the last column, i.e., the bias.
+                loss = self._optimizer.regularizer.norm(weights)
+            else:
+                loss = 0
+        else:
+            loss = 0
+        return loss
