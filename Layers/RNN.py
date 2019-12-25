@@ -2,78 +2,95 @@ import numpy as np
 import copy
 from Layers.Base import base_layer
 from Layers.TanH import TanH
+from Layers.Sigmoid import Sigmoid
+
+class RNN_cell:
+    def __init__(self, W_xh, W_hh, W_hy, B_h, B_y):
+        # W_xh:(H, J)   W_hh: (H, H)    W_hy: (K, H)    B_h: (1, H)    B_y: (1, K)
+        self.W_xh, self.W_hh, self.W_hy, self.B_h , self.B_y = W_xh, W_hh, W_hy, B_h, B_y
+
+        # Variables which are stored in forward pass for backward pass
+        self.sigmoid = None          # store tanh activation function
+        self.tanh = None             # store tanh activation function
+        self.input_tensor = None     # store input_tensor
+        self.h_current = None        # hidden state of current cell
+        self.h_last = None           # hidden state of last cell
+
+    def forward(self, input_tensor, hidden_state):
+        self.tanh = TanH()
+        self.sigmoid = Sigmoid()
+        # store variables which are needed in backward pass
+        self.input_tensor = input_tensor
+        self.h_last = hidden_state
+        # forward propagation algorithm
+        self.h_current = self.tanh.forward(np.dot(hidden_state, self.W_hh.T) +
+                                    np.dot(input_tensor, self.W_xh.T) + self.B_h)
+        output_tensor = self.sigmoid.forward(np.dot(self.h_current, self.W_hy.T) + self.B_y)
+        return output_tensor, self.h_current
+
+    def backward(self, error_tensor, hidden_error):
+        error_tensor = self.sigmoid.backward(error_tensor)
+        e_tmp = self.tanh.backward(np.dot(error_tensor, self.W_hy) + hidden_error)  # error transferred over tanh
+        hidden_error = np.dot(e_tmp, self.W_hh)
+        output_error = np.dot(e_tmp, self.W_xh)
+        grad_W_hy = np.dot(error_tensor.reshape(-1, 1), self.h_current.reshape(1, -1))  # grad_V (K, H)
+        grad_B_y = error_tensor  # (1, K)
+        grad_W_hh = np.dot(e_tmp.reshape(-1, 1), self.h_last.reshape(1, -1))  # (H, H)
+        grad_W_xh = np.dot(e_tmp.reshape(-1, 1), self.input_tensor.reshape(1, -1))  # (H, J)
+        grad_B_h = e_tmp
+        return output_error, hidden_error, grad_W_hy, grad_B_y, grad_W_hh, grad_W_xh, grad_B_h
 
 class RNN(base_layer):
     def __init__(self, input_size, hidden_size, output_size):
         super().__init__()
-        self.H = hidden_size
-        self.J = input_size
-        self.K = output_size
-
-        # input_tensor: (1, J)  output_tensor: (1,K)    hidden_tensor: (1,H)
-        self.hidden_state = np.zeros((1, self.H))       #initialize as 0 for time 0
+        self.H, self.J, self.K = hidden_size, input_size, output_size
 
         # W_xh:(H, J)   W_hh: (H, H)    W_hy: (K, H)
         self.W_xh = np.random.rand(self.H, self.J)
         self.W_hh = np.random.rand(self.H, self.H)
         self.W_hy = np.random.rand(self.K, self.H)
-
         # B_h: (1, H)    B_y: (1, K)
         self.B_h = np.random.rand(1, self.H)
         self.B_y = np.random.rand(1, self.K)
 
-        # Variables which are stored in forward pass for backward pass
-        self.tanh = []          #store tanh function in each hidden cell
-        self.input_tensor = None
-
         self._memory = False    # indicates whether subsequent batch sequence has relation with the last one
 
-        #initialize gradients
+        # the hidden_state for time slot 0.
+        self.hidden_state = np.zeros((1, self.H))
+
+        # initialize gradients
         self.grad_weights = None
 
         # initialize optimizers
         self._optimizer = None
-        self.W_xh_optimizer = None
-        self.W_hh_optimizer = None
-        self.W_hy_optimizer = None
-        self.B_h_optimizer = None
-        self.B_y_optimizer = None
+        self.W_xh_optimizer, self.W_hh_optimizer, self.W_hy_optimizer,\
+        self.B_h_optimizer, self.B_y_optimizer = None, None, None, None, None
+
+        # bulid RNN layer using RNN-cells
+        self.layer = []
 
     def forward(self, input_tensor):
-        # input_tensor shape (B, J)
-        if not self._memory:   # if the next batch(time batch) has no relation with the last batch
-            self.tanh = []                                  #initialize tanh list
-            self.hidden_state = np.zeros((1, self.H))       #initialize hidden state as zero again
         self.input_tensor = input_tensor
-        batch_size = input_tensor.shape[0]                  # batch size: input_tensor.shape[0]
+        batch_size = input_tensor.shape[0]  # batch size: input_tensor.shape[0]
         output_tensor = np.zeros((batch_size, self.K))
+
+        if not self._memory:  # if the next batch(time batch) has no relation with the last batch
+            self.hidden_state = np.zeros((1, self.H))  # initialize hidden_state as 0
+
         for t in range(batch_size):
-            # creates tanh function for the current cell
-            tanh = TanH()
-            # forward propagation algorithm
-            hidden_state = tanh.forward(np.dot(self.hidden_state[-1, :], self.W_hh.T) +
-                                        np.dot(input_tensor[t, :], self.W_xh.T) + self.B_h)
-            output_tensor[t, :] = np.dot(hidden_state, self.W_hy.T) + self.B_y
-            # stores the information of activation of tanh for backward propagation
-            self.hidden_state = np.vstack((self.hidden_state, hidden_state))    #stack the new state at end of hidden_state array
-            self.tanh.append(tanh)
+            cell = RNN_cell(self.W_xh, self.W_hh, self.W_hy, self.B_h, self.B_y)
+            output_tensor[t, :], self.hidden_state = cell.forward(input_tensor[t, :], self.hidden_state)
+            self.layer.append(cell)
+
         return output_tensor
 
     def backward(self, error_tensor):
-        # error_tensor (B,K)  hidden_error (B,H)
-        # initialize hidden_error and output_error
+        # error_tensor (B,K)  output_error (B,J)
+        # initialize output_error
         batch_size = error_tensor.shape[0]
-        hidden_error = np.zeros((batch_size, self.H))
         output_error = np.zeros((batch_size, self.J))
-
-        # calculation of hidden_error and output error
-        hidden_error[-1, :] = self.tanh[-1].backward(np.dot(error_tensor[-1, :], self.W_hy))
-        output_error[-1, :] = np.dot(hidden_error[-1, :], self.W_xh)
-        for t in reversed(range(batch_size-1)):
-            hidden_error[t, :] = self.tanh[t].backward(np.dot(error_tensor[t, :], self.W_hy) +
-                                                       np.dot(hidden_error[t+1, :], self.W_hh))
-            output_error[t, :] = np.dot(hidden_error[t, :], self.W_xh)
-
+        # initialize hidden_error tensor for last layer
+        hidden_error = np.zeros((1, self.H))
         # initialization of gradients
         # W_xh:(H, J)   W_hh: (H, H)    W_hy: (K, H)    B_h: (1, H)    B_y: (1, K)
         grad_W_xh = np.zeros_like(self.W_xh)
@@ -82,18 +99,19 @@ class RNN(base_layer):
         grad_B_h = np.zeros_like(self.B_h)
         grad_B_y = np.zeros_like(self.B_y)
 
-        # calculation of gradients
-        # self.hidden_state (B+1, H), because of its 0 time slot
-        # np.dot() for (13,) and (7,)     ????
-        for t in range(batch_size):
-            grad_W_hy += np.dot(error_tensor[t, :].reshape(-1,1), self.hidden_state[t+1, :].reshape(1, -1))    #grad_V (K, H)
-            grad_B_y += error_tensor[t, :]                                                                     #(1, K)
-            grad_W_hh += np.dot(self.hidden_state[t, :].reshape(-1,1), hidden_error[t, :].reshape(1, -1))      #(H, H)
-            grad_W_xh += np.dot(hidden_error[t, :].reshape(-1,1), self.input_tensor[t, :].reshape(1, -1))      #(H, J)
-            grad_B_h += hidden_error[t, :]                                                               #(1, H)
+        # calculation of hidden_error and output error
+        for t in reversed(range(batch_size)):
+            output_error[t, :], hidden_error, d_W_hy, d_B_y, d_W_hh, d_W_xh, d_B_h =\
+                self.layer[t].backward(error_tensor[t, :], hidden_error)
+
+            grad_W_hy += d_W_hy
+            grad_B_y += d_B_y
+            grad_W_hh += d_W_hh
+            grad_W_xh += d_W_xh
+            grad_B_h += d_B_h
 
         # stores gradients of hidden unit for Unitest
-        self.grad_weights = np.concatenate((grad_W_xh, grad_W_hh.T, grad_B_h.reshape(-1,1)), axis=1)
+        self.grad_weights = np.concatenate((grad_W_xh, grad_W_hh, grad_B_h.reshape(-1,1)), axis=1)
 
         # update weights and biases
         if self._optimizer is not None:
@@ -130,7 +148,7 @@ class RNN(base_layer):
         # weights only include W_xh, W_hh, B_h. It means the parameters needed for calculation of hidden state.
         # weights must be [W_xh, W_hh.T, B_h.T] in order to correspond to Unitest.
         # In Helpers.py, use "print(it.multi_index)  print(analytical_derivative - numerical_derivative)" to check order of weights
-        weights_hidden = np.concatenate((self.W_xh, self.W_hh.T, self.B_h.T), axis=1)
+        weights_hidden = np.concatenate((self.W_xh, self.W_hh, self.B_h.T), axis=1)
         return weights_hidden
 
     @weights.setter
@@ -141,7 +159,7 @@ class RNN(base_layer):
         if weights_hidden is not None:
             self.W_xh = weights_hidden[:, :self.J]
             self.W_hh = weights_hidden[:, self.J:-1]
-            self.B_h = weights_hidden[:, -1]
+            self.B_h = weights_hidden[:, -1].reshape(1, self.H)
         else:
             self.W_xh = None
             self.W_hh = None
