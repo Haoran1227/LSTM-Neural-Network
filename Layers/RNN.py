@@ -23,7 +23,7 @@ class RNN(base_layer):
         self.B_y = np.random.rand(1, self.K)
 
         # Variables which are stored in forward pass for backward pass
-        self.tahn = []          #store tahn function in each hidden cell
+        self.tanh = []          #store tanh function in each hidden cell
         self.input_tensor = None
 
         self._memory = False    # indicates whether subsequent batch sequence has relation with the last one
@@ -42,21 +42,21 @@ class RNN(base_layer):
     def forward(self, input_tensor):
         # input_tensor shape (B, J)
         if not self._memory:   # if the next batch(time batch) has no relation with the last batch
-            self.tahn = []                                  #initialize tahn list
+            self.tanh = []                                  #initialize tanh list
             self.hidden_state = np.zeros((1, self.H))       #initialize hidden state as zero again
         self.input_tensor = input_tensor
         batch_size = input_tensor.shape[0]                  # batch size: input_tensor.shape[0]
         output_tensor = np.zeros((batch_size, self.K))
         for t in range(batch_size):
-            # creates tahn function for the current cell
-            tahn = TanH()
+            # creates tanh function for the current cell
+            tanh = TanH()
             # forward propagation algorithm
-            hidden_state = tahn.forward(np.dot(self.hidden_state[-1, :], self.W_hh.T) +
+            hidden_state = tanh.forward(np.dot(self.hidden_state[-1, :], self.W_hh.T) +
                                         np.dot(input_tensor[t, :], self.W_xh.T) + self.B_h)
             output_tensor[t, :] = np.dot(hidden_state, self.W_hy.T) + self.B_y
-            # stores the information of activation of tahn for backward propagation
+            # stores the information of activation of tanh for backward propagation
             self.hidden_state = np.vstack((self.hidden_state, hidden_state))    #stack the new state at end of hidden_state array
-            self.tahn.append(tahn)
+            self.tanh.append(tanh)
         return output_tensor
 
     def backward(self, error_tensor):
@@ -67,10 +67,10 @@ class RNN(base_layer):
         output_error = np.zeros((batch_size, self.J))
 
         # calculation of hidden_error and output error
-        hidden_error[-1, :] = self.tahn[-1].backward(np.dot(error_tensor[-1, :], self.W_hy))
+        hidden_error[-1, :] = self.tanh[-1].backward(np.dot(error_tensor[-1, :], self.W_hy))
         output_error[-1, :] = np.dot(hidden_error[-1, :], self.W_xh)
         for t in reversed(range(batch_size-1)):
-            hidden_error[t, :] = self.tahn[t].backward(np.dot(error_tensor[t, :], self.W_hy) +
+            hidden_error[t, :] = self.tanh[t].backward(np.dot(error_tensor[t, :], self.W_hy) +
                                                        np.dot(hidden_error[t+1, :], self.W_hh))
             output_error[t, :] = np.dot(hidden_error[t, :], self.W_xh)
 
