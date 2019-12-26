@@ -20,9 +20,9 @@ class LSTM_cell:
 
     def forward(self, input_tensor, hidden_state, cell_state):
         # store variables which are needed in backward pass
-        x = input_tensor.reshape(1, -1)   #(1,J)
-        prev_h = hidden_state             #(1,H)
-        prev_c = cell_state               #(1,H)
+        x = input_tensor.reshape(1, -1)   # (1,J)
+        prev_h = hidden_state             # (1,H)
+        prev_c = cell_state               # (1,H)
         _, H = hidden_state.shape
 
         # initialize tanh and sigmoid functions
@@ -34,11 +34,11 @@ class LSTM_cell:
             self.tanh.append(tanh)
 
         # forward propagation algorithm
-        embedding = np.dot(x, self.W_xh.T) + np.dot(prev_h, self.W_hh.T) + self.B_h     #(1,4H)
+        embedding = np.dot(x, self.W_xh.T) + np.dot(prev_h, self.W_hh.T) + self.B_h     # (1,4H)
         f = self.sigmoid[0].forward(embedding[:, :H])
-        i = self.sigmoid[1].forward(embedding[:, H : 2*H])
-        c_hat = self.tanh[0].forward(embedding[:, 2*H : 3*H])
-        o = self.sigmoid[2].forward(embedding[:, 3*H :])
+        i = self.sigmoid[1].forward(embedding[:, H:2*H])
+        c_hat = self.tanh[0].forward(embedding[:, 2*H:3*H])
+        o = self.sigmoid[2].forward(embedding[:, 3*H:])
         # calculation of new cell_state
         next_c = prev_c * f + i * c_hat
         # calculation of new hidden_state
@@ -51,7 +51,7 @@ class LSTM_cell:
         self.cache = [f, i, c_hat, o, x, prev_h, prev_c, tanh_output, next_h, next_c]
 
         return output_tensor, next_h, next_c
-######################################################################################
+
     def backward(self, error_tensor, dnext_c, dnext_h):
         # dnext_c: input cell_state error
         # dnext_h: input hidden_state error
