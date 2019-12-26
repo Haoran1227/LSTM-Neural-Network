@@ -126,7 +126,7 @@ class RNN(base_layer):
         return output_error
 
     def initialize(self, weights_initializer, bias_initializer):    #fucntion which can reinitialize weights and bias
-        # # for W_xh, B_h: fan_in = input_size   fan_out=hidden_size
+        # for W_xh, B_h: fan_in = input_size   fan_out=hidden_size
         self.W_xh = weights_initializer.initialize(self.W_xh.shape, self.J, self.H)
         self.B_h = bias_initializer.initialize(self.B_h.shape, self.J, self.H)
         # for W_hh: fan_in = hidden_size   fan_out=hidden_size
@@ -146,7 +146,7 @@ class RNN(base_layer):
     @property
     def weights(self):
         # weights only include W_xh, W_hh, B_h. It means the parameters needed for calculation of hidden state.
-        # weights must be [W_xh, W_hh.T, B_h.T] in order to correspond to Unitest.
+        # weights must be [W_xh, W_hh, B_h.T] in order to correspond to Unitest.
         # In Helpers.py, use "print(it.multi_index)  print(analytical_derivative - numerical_derivative)" to check order of weights
         weights_hidden = np.concatenate((self.W_xh, self.W_hh, self.B_h.T), axis=1)
         return weights_hidden
