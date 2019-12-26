@@ -53,7 +53,36 @@ class LSTM_cell:
         return output_tensor, next_h, next_c
 ######################################################################################
     def backward(self, error_tensor, dnext_c, dnext_h):
-        pass
+        # dnext_c: input cell_state error
+        # dnext_h: input hidden_state error
+
+        # load stored variables in forward pass.
+        f, i, c_hat, o, x, prev_h, prev_c, tanh_output, next_h, next_c = self.cache
+
+        # calculation of gradients of W_hy and B_y
+        error_tensor = self.sigmoid[3].backward(error_tensor)
+        dW_hy = np.dot(error_tensor.reshape(-1, 1), next_h.reshape(1, -1))  # (K, H)
+        dB_y = error_tensor  # (1, K)
+
+        # propagation of error
+        error_tensor = np.dot(error_tensor, self.W_hy)
+        dnext_h += error_tensor
+        do = self.sigmoid[2].backward(dnext_h * tanh_output)
+        dnext_c += self.tanh[1].backward(dnext_h * o)
+        dprev_c = dnext_c * f
+        df = self.sigmoid[0].backward(dnext_c * prev_c)
+        dc_hat = self.tanh[0].backward(dnext_c * i)
+        di = self.sigmoid[1].backward(dnext_c * c_hat)
+
+        # calculation of gradients
+        dmix = np.concatenate((df, di, dc_hat, do), axis=1)     #(1, 4H)
+        dx = np.dot(dmix, self.W_xh)
+        dprev_h = np.dot(dmix, self.W_hh)
+        dW_xh = np.dot(dmix.reshape(-1, 1), x.reshape(1, -1))
+        dW_hh = np.dot(dmix.reshape(-1, 1), prev_h.reshape(1, -1))
+        dB_h = dmix
+
+        return dx, dprev_c, dprev_h, dW_xh, dW_hh, dB_h, dW_hy, dB_y
 
 
 
