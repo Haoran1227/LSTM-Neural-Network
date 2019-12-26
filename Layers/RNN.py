@@ -70,7 +70,6 @@ class RNN(base_layer):
         self.layer = []
 
     def forward(self, input_tensor):
-        self.input_tensor = input_tensor
         batch_size = input_tensor.shape[0]  # batch size: input_tensor.shape[0]
         output_tensor = np.zeros((batch_size, self.K))
 
