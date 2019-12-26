@@ -56,6 +56,7 @@ class RNN(base_layer):
         self._memory = False    # indicates whether subsequent batch sequence has relation with the last one
 
         # the hidden_state for time slot 0.
+        # it needs to be a global variable, because it transfers hidden_state between batch.
         self.hidden_state = np.zeros((1, self.H))
 
         # initialize gradients
