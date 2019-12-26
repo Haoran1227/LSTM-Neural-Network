@@ -13,29 +13,29 @@ class RNN_cell:
         self.sigmoid = None          # store tanh activation function
         self.tanh = None             # store tanh activation function
         self.input_tensor = None     # store input_tensor
-        self.h_current = None        # hidden state of current cell
-        self.h_last = None           # hidden state of last cell
+        self.output_h = None        # hidden state of current cell
+        self.input_h = None         # hidden state of last cell
 
     def forward(self, input_tensor, hidden_state):
         self.tanh = TanH()
         self.sigmoid = Sigmoid()
         # store variables which are needed in backward pass
         self.input_tensor = input_tensor
-        self.h_last = hidden_state
+        self.input_h = hidden_state
         # forward propagation algorithm
-        self.h_current = self.tanh.forward(np.dot(hidden_state, self.W_hh.T) +
+        self.output_h = self.tanh.forward(np.dot(hidden_state, self.W_hh.T) +
                                     np.dot(input_tensor, self.W_xh.T) + self.B_h)
-        output_tensor = self.sigmoid.forward(np.dot(self.h_current, self.W_hy.T) + self.B_y)
-        return output_tensor, self.h_current
+        output_tensor = self.sigmoid.forward(np.dot(self.output_h, self.W_hy.T) + self.B_y)
+        return output_tensor, self.output_h
 
     def backward(self, error_tensor, hidden_error):
         error_tensor = self.sigmoid.backward(error_tensor)
         e_tmp = self.tanh.backward(np.dot(error_tensor, self.W_hy) + hidden_error)  # error transferred over tanh
         hidden_error = np.dot(e_tmp, self.W_hh)
         output_error = np.dot(e_tmp, self.W_xh)
-        grad_W_hy = np.dot(error_tensor.reshape(-1, 1), self.h_current.reshape(1, -1))  # grad_V (K, H)
+        grad_W_hy = np.dot(error_tensor.reshape(-1, 1), self.output_h.reshape(1, -1))  # grad_V (K, H)
         grad_B_y = error_tensor  # (1, K)
-        grad_W_hh = np.dot(e_tmp.reshape(-1, 1), self.h_last.reshape(1, -1))  # (H, H)
+        grad_W_hh = np.dot(e_tmp.reshape(-1, 1), self.input_h.reshape(1, -1))  # (H, H)
         grad_W_xh = np.dot(e_tmp.reshape(-1, 1), self.input_tensor.reshape(1, -1))  # (H, J)
         grad_B_h = e_tmp
         return output_error, hidden_error, grad_W_hy, grad_B_y, grad_W_hh, grad_W_xh, grad_B_h
