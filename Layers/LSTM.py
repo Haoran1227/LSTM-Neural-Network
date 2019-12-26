@@ -107,7 +107,43 @@ class LSTM(base_layer):
         return output_tensor
 
     def backward(self, error_tensor):
-        pass
+        # error_tensor (B,K)  output_error (B,J)
+        # initialize output_error
+        batch_size = error_tensor.shape[0]
+        output_error = np.zeros((batch_size, self.J))
+        # initialize hidden_error tensor and cellstate_error for last layer
+        dnext_c = np.zeros((1, self.H))
+        dnext_h = np.zeros((1, self.H))
+        # initialization of gradients
+        # W_xh:(4H, J)  W_hh:(4H, H)  B_h:(1, 4H)  W_hy:(K, H)  B_y:(1, K)
+        grad_W_xh, grad_W_hh, grad_W_hy, grad_B_h, grad_B_y = \
+            np.zeros_like(self.W_xh), np.zeros_like(self.W_hh), np.zeros_like(self.W_hy), np.zeros_like(self.B_h), np.zeros_like(self.B_y)
+
+        # calculation of hidden_error and output error
+        for t in reversed(range(batch_size)):
+            output_error[t, :], dnext_c, dnext_h, dW_xh, dW_hh, dB_h, dW_hy, dB_y =\
+                self.layer[t].backward(error_tensor[t, :], dnext_c, dnext_h)
+
+            grad_W_xh += dW_xh
+            grad_W_hh += dW_hh
+            grad_B_h += dB_h
+            grad_W_hy += dW_hy
+            grad_B_y += dB_y
+
+        # stores gradients of hidden units for Unitest
+        self.grad_weights = np.concatenate((grad_W_xh, grad_W_hh, grad_B_h.reshape(-1, 1)), axis=1)
+
+        # update weights and biases
+        if self._optimizer is not None:
+            self.W_xh = self.W_xh_optimizer.calculate_update(self.W_xh, grad_W_xh)
+            self.W_hh = self.W_hh_optimizer.calculate_update(self.W_hh, grad_W_hh)
+            self.W_hy = self.W_hy_optimizer.calculate_update(self.W_hy, grad_W_hy)
+            self.B_h = self.B_h_optimizer.calculate_update(self.B_h, grad_B_h)
+            self.B_y = self.B_y_optimizer.calculate_update(self.B_y, grad_B_y)
+
+        # 在一次反向传播更新后，重置RNN的状态
+        self._memory = False
+        return output_error
 
     def initialize(self, weights_initializer, bias_initializer):    #fucntion which can reinitialize weights and bias
         # for W_xh, B_h: fan_in = input_size   fan_out=hidden_size
