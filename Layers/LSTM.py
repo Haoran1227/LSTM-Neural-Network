@@ -6,24 +6,35 @@ from Layers.Sigmoid import Sigmoid
 
 class LSTM_cell:
     def __init__(self, W_xh, W_hh, B_h, W_hy, B_y):
-        # W_xh = [W_xf W_xi W_xc W_xo].T    shape:(4H, J)   W-(H, J)
+        # W_xh = [W_xf W_xi W_xc W_xo].T    shape:(4H, J)   each W:(H, J)
         # W_hh = [W_hf W_hi W_hc W_ho].T    shape:(4H, H)
-        # B_h = [B_xf B_xi B_xc B_xo]       shape:(1, 4H)   B-(1, H)
+        # B_h = [B_xf B_xi B_xc B_xo]       shape:(1, 4H)   each B:(1, H)
         # W_hy  shape:(K, H)
         # B_y   shape:(1, K)
         self.W_xh, self.W_hh, self.B_h, self.W_hy, self.B_y = W_xh, W_hh, B_h, W_hy, B_y
 
         # Variables which are stored in forward pass for backward pass
-        self.sigmoid = []            # store tanh activation functions
+        self.sigmoid = []            # store sigmoid activation functions
         self.tanh = []               # store tanh activation functions
         self.cache = None            # store variables used in calculating gradients in backward pass
 
     def forward(self, input_tensor, hidden_state, cell_state):
-        # store variables which are needed in backward pass
-        x = input_tensor.reshape(1, -1)   # (1,J)
-        prev_h = hidden_state             # (1,H)
-        prev_c = cell_state               # (1,H)
-        _, H = hidden_state.shape
+        """
+        This function realize the forward propagation of one LSTM-cell
+        Args:
+            input_tensor: x_t, input tensor of current slot.
+            hidden_state: h_t-1, hidden state of previous LSTM-cell (time slot)
+            cell_state: c_t-1, cell state of previous LSTM-cell (time slot)
+        Returns:
+            ndarray, output_tensor: y_t, output tensor of current slot.
+            ndarray, next_h: h_t, hidden state of previous LSTM-cell, which will be transferred to next cell
+            ndarray, next_c: c_t, cell state of previous LSTM-cell, which will be transferred to next cell
+        """
+        # Data preparation.
+        x = input_tensor.reshape(1, -1)   # shape: (1,J)
+        prev_h = hidden_state             # shape: (1,H)
+        prev_c = cell_state               # shape: (1,H)
+        _, H = hidden_state.shape         # hidden size
 
         # initialize tanh and sigmoid functions
         for _ in range(4):
@@ -33,7 +44,7 @@ class LSTM_cell:
             tanh = TanH()
             self.tanh.append(tanh)
 
-        # forward propagation algorithm
+        # forward propagation in LSTM-cell
         embedding = np.dot(x, self.W_xh.T) + np.dot(prev_h, self.W_hh.T) + self.B_h     # (1,4H)
         f = self.sigmoid[0].forward(embedding[:, :H])
         i = self.sigmoid[1].forward(embedding[:, H:2*H])
@@ -53,18 +64,25 @@ class LSTM_cell:
         return output_tensor, next_h, next_c
 
     def backward(self, error_tensor, dnext_c, dnext_h):
-        # dnext_c: input cell_state error
-        # dnext_h: input hidden_state error
-
+        """
+        This function realize the backward propagation of one LSTM-cell
+        Args:
+            error_tensor: e_t, input error tensor of current LSTM-cell
+            dnext_c: input cell_state error, input error tensor refer to cell state from next LSTM-cell
+            dnext_h: input hidden_state error, input error tensor refer to hidden state from next LSTM-cell
+        Returns:
+            dx, dprev_c, dprev_h, dW_xh, dW_hh, dB_h, dW_hy, dB_y
+            # the derivatives of output to previous LSTM-cell and previous layer and trainable parameters
+        """
         # load stored variables in forward pass.
         f, i, c_hat, o, x, prev_h, prev_c, tanh_output, next_h, next_c = self.cache
 
         # calculation of gradients of W_hy and B_y
         error_tensor = self.sigmoid[3].backward(error_tensor)
-        dW_hy = np.dot(error_tensor.reshape(-1, 1), next_h.reshape(1, -1))  # (K, H)
-        dB_y = error_tensor  # (1, K)
+        dW_hy = np.dot(error_tensor.reshape(-1, 1), next_h.reshape(1, -1))  # shape: (K, H)
+        dB_y = error_tensor  # shape: (1, K)
 
-        # propagation of error
+        # backward propagation of error
         error_tensor = np.dot(error_tensor, self.W_hy)
         dnext_h += error_tensor
         do = self.sigmoid[2].backward(dnext_h * tanh_output)
