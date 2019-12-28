@@ -15,6 +15,10 @@ Flatten.py: realizes flatten layer.
 
 Pooling.py: realizes pooling layer.
 
+RNN.py: realizes RNN layer.
+
+LSTM.py: realizes LSTM layer.
+
 ReLU.py: realizes a node with ReLU activation function.
 
 SoftMax.py: realizes layer with softmax function for classification problem.
