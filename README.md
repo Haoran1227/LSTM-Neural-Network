@@ -5,6 +5,8 @@ Haoran Zhao, 2019.11.30
 
 Optimizers.py: Advanced optimization methods including Stochastic Gradient Descent(SGD), SGD with momentum and Adam optimizers.
 
+Constraints.py: realizes L1 and L2 regularization methods.
+
 FullyConnected.py: realizes a fully-connected layer with forward propagation, backward propagation and gradients update function.
 
 Conv.py: realizes convolutional layer. The forward propagation has two achievements, downsampling after convolution and im2col.
