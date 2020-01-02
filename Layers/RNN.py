@@ -13,8 +13,8 @@ class RNN_cell:
         self.sigmoid = None          # store tanh activation function
         self.tanh = None             # store tanh activation function
         self.input_tensor = None     # store input_tensor
-        self.output_h = None        # hidden state of current cell
-        self.input_h = None         # hidden state of last cell
+        self.output_h = None         # hidden state of current cell
+        self.input_h = None          # hidden state of last cell
 
     def forward(self, input_tensor, hidden_state):
         self.tanh = TanH()
@@ -93,11 +93,8 @@ class RNN(base_layer):
         hidden_error = np.zeros((1, self.H))
         # initialization of gradients
         # W_xh:(H, J)   W_hh: (H, H)    W_hy: (K, H)    B_h: (1, H)    B_y: (1, K)
-        grad_W_xh = np.zeros_like(self.W_xh)
-        grad_W_hh = np.zeros_like(self.W_hh)
-        grad_W_hy = np.zeros_like(self.W_hy)
-        grad_B_h = np.zeros_like(self.B_h)
-        grad_B_y = np.zeros_like(self.B_y)
+        grad_W_xh, grad_W_hh, grad_W_hy, grad_B_h, grad_B_y = \
+            np.zeros_like(self.W_xh), np.zeros_like(self.W_hh), np.zeros_like(self.W_hy), np.zeros_like(self.B_h), np.zeros_like(self.B_y)
 
         # calculation of hidden_error and output error
         for t in reversed(range(batch_size)):
@@ -121,7 +118,7 @@ class RNN(base_layer):
             self.B_h = self.B_h_optimizer.calculate_update(self.B_h, grad_B_h)
             self.B_y = self.B_y_optimizer.calculate_update(self.B_y, grad_B_y)
 
-        #在一次反向传播更新后，重置RNN的状态
+        # After update in one backward pass, reset the memory flag as False
         self._memory = False
         return output_error
 
@@ -161,9 +158,7 @@ class RNN(base_layer):
             self.W_hh = weights_hidden[:, self.J:-1]
             self.B_h = weights_hidden[:, -1].reshape(1, self.H)
         else:
-            self.W_xh = None
-            self.W_hh = None
-            self.B_h = None
+            self.W_xh, self.W_hh, self.B_h = None, None, None
 
     @property
     def gradient_weights(self):
