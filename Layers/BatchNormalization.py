@@ -39,22 +39,15 @@ class BatchNormalization(base_layer):
     def reformat(self, tensor):
         # this function can do the transform and inverse transform between image-like tensor and vector-like tensor
         # in order to make BN layer adapt to convolutional case
+        B, H, M, N = self.input_shape
         if len(tensor.shape) == 4:          # convert image-like tensor to vector-like tensor
             # image-like tensor (B,H,M,N)
-            B = self.input_shape[0]
-            H = self.input_shape[1]
-            M = self.input_shape[2]
-            N = self.input_shape[3]
             tensor = tensor.reshape(B, H, M*N)      #(B,H,MN)
             variant = np.zeros((B, M*N, H))         #(B,MN,H) stores the tensor after transpose
             for b in range(B):
                 variant[b, :, :] = np.transpose(tensor[b, :, :])
             variant = variant.reshape(B*M*N, H)     #(BMN,H)
         else:                               #convert vector-like tensor to image-like tensor
-            B = self.input_shape[0]
-            H = self.input_shape[1]
-            M = self.input_shape[2]
-            N = self.input_shape[3]
             # vector-like tensor (B*M*N, H)
             tensor = tensor.reshape((B, M*N, H))      #(B,MN,H)
             variant = np.zeros((B, H, M*N))         #(B,H,MN)
@@ -62,7 +55,6 @@ class BatchNormalization(base_layer):
                 variant[b, :, :] = np.transpose(tensor[b, :, :])
             variant = variant.reshape((B, H, M, N)) #(B,H,M,N)
         return variant
-
 
     def forward(self, input_tensor):
         self.input_shape = input_tensor.shape
