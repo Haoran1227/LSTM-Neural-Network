@@ -1301,7 +1301,7 @@ class TestLSTM(unittest.TestCase):
         self.assertLessEqual(np.sum(difference), 1e-3)
 
     def test_bias(self):
-        bptt_length = 1
+        #bptt_length = 1                        #???????????
         input_tensor = np.zeros((1, 100000))
         layer = LSTM.LSTM(100000, 100, 1)
         layer.initialize(Initializers.UniformRandom(), Initializers.UniformRandom())
