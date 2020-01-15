@@ -10,8 +10,8 @@ class Dropout(base_layer):
     def forward(self, input_tensor):
         # in test phase, the dropout has no effect.
         # in training phase, inverted dropout is implemented. 1) multiply dropout vector. 2) rescale by 1/p
-        self.dropout_vec = np.random.binomial(1, self.prob, size=input_tensor.shape)
         if self.phase == 'train':
+            self.dropout_vec = np.random.binomial(1, self.prob, size=input_tensor.shape)
             input_tensor = input_tensor * self.dropout_vec / self.prob
         return input_tensor
 
