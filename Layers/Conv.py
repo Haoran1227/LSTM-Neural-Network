@@ -184,12 +184,9 @@ class Conv(base_layer):
 
     @property
     def regularization_loss(self):
+        loss = 0
         if self.weights_optimizer is not None:  # if weights_optimizer is defined
             if self.weights_optimizer.regularizer is not None:  #if weights_optimizer has regularizer
                 # calculate regularization_loss
                 loss = self.weights_optimizer.regularizer.norm(self.weights)
-            else:
-                loss = 0
-        else:
-            loss = 0
         return loss

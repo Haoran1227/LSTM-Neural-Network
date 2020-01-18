@@ -290,14 +290,11 @@ class LSTM(base_layer):
 
     @property
     def regularization_loss(self):
+        loss = 0
         if self._optimizer is not None:  # if weights_optimizer is defined
             if self._optimizer.regularizer is not None:  #if weights_optimizer has regularizer
                 # calculate regularization_loss
                 loss = self.W_xh_optimizer.regularizer.norm(self.W_xh) + \
                        self.W_hh_optimizer.regularizer.norm(self.W_hh) + \
                        self.W_hy_optimizer.regularizer.norm(self.W_hy)
-            else:
-                loss = 0
-        else:
-            loss = 0
         return loss
