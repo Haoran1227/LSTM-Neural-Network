@@ -27,8 +27,8 @@ class LSTM_cell:
         self.W_xh, self.W_hh, self.B_h, self.W_hy, self.B_y = W_xh, W_hh, B_h, W_hy, B_y
 
         # Variables which are stored in forward pass for backward pass
-        self.sigmoid = []            # store sigmoid activation functions
-        self.tanh = []               # store tanh activation functions
+        self.sigmoid = None          # store sigmoid activation functions
+        self.tanh = None             # store tanh activation functions
         self.cache = None            # store variables used in calculating gradients in backward pass
 
     def forward(self, input_tensor, hidden_state, cell_state):
@@ -50,12 +50,8 @@ class LSTM_cell:
         _, H = hidden_state.shape         # hidden size
 
         # initialize tanh and sigmoid functions
-        for _ in range(4):
-            sigmoid = Sigmoid()
-            self.sigmoid.append(sigmoid)
-        for _ in range(2):
-            tanh = TanH()
-            self.tanh.append(tanh)
+        self.sigmoid = [Sigmoid() for _ in range(4)]
+        self.tanh = [TanH() for _ in range(2)]
 
         # forward propagation in LSTM-cell
         embedding = np.dot(x, self.W_xh.T) + np.dot(prev_h, self.W_hh.T) + self.B_h     # (1,4H)
